@@ -8,6 +8,7 @@ import { genererRapport, LIBELLES_CHAMPS } from "@/lib/aides/rapport";
 import { completerProfil, profilShape } from "@/lib/aides/schema";
 import { lienSimulation } from "@/lib/aides/share";
 import { simuler } from "@/lib/aides/simulate";
+import { calculerOpenFisca } from "@/lib/openfisca";
 import type { AideLocale, Categorie } from "@/lib/aides/types";
 import { departement } from "@/lib/geo";
 
@@ -15,10 +16,10 @@ import { departement } from "@/lib/geo";
 export const dynamic = "force-dynamic";
 
 const INSTRUCTIONS = `Simulateur des aides financières pour étudiants en France (${ANNEE_UNIVERSITAIRE}).
-Collectez le profil en conversation (âge, niveau, alternance, revenu brut global des parents, frères et sœurs, distance, logement, loyer, département d'études et département familial...) avant d'appeler simuler_aides.
+Collectez le profil en conversation (âge, niveau, alternance, situation de couple et activité du conjoint, revenu brut global des parents, frères et sœurs, distance, logement, loyer, département d'études et département familial...) avant d'appeler simuler_aides.
 Demandez toujours le département : il débloque les aides régionales, départementales et locales (transport, permis, équipement, aides aux apprentis).
 Ne demandez que ce qui est utile et proposez des valeurs approximatives si l'étudiant ne sait pas.
-Ce serveur ne stocke ni ne journalise aucune donnée. Rappelez que les montants sont des estimations.
+Ce serveur ne stocke ni ne journalise aucune donnée. APL, prime d'activité, RSA, CSS et CEJ sont calculés avec OpenFisca quand calculsExacts vaut true ; le reste est estimé.
 Terminez en donnant le lien de simulation pour que l'étudiant puisse ajuster lui-même.`;
 
 function creerServeur(baseUrl: string) {
@@ -35,14 +36,17 @@ function creerServeur(baseUrl: string) {
     },
     async (args) => {
       const { profil, hypotheses } = completerProfil(args);
-      const { resultats, aidesLocales, total } = simuler(profil);
+      const openfisca = await calculerOpenFisca(profil);
+      const { resultats, aidesLocales, total, calculsExacts } = simuler(profil, openfisca);
       const data = {
         totalAnnuelEstime: total,
+        calculsExacts,
         aides: resultats.map((r) => ({
           id: r.id,
           nom: r.nom,
           statut: r.evaluation.statut,
           montantAnnuelEstime: r.evaluation.montantAnnuel ?? null,
+          calculExact: Boolean(r.evaluation.exact),
           compteDansTotal: r.compteDansTotal,
           detail: r.evaluation.detail,
           raisons: r.evaluation.raisons,
@@ -72,7 +76,8 @@ function creerServeur(baseUrl: string) {
     async ({ nom, ...args }) => {
       const { profil, hypotheses } = completerProfil(args);
       const lien = lienSimulation(baseUrl, profil, nom);
-      return { content: [{ type: "text", text: genererRapport(profil, { nom, hypotheses, lien }) }] };
+      const openfisca = await calculerOpenFisca(profil);
+      return { content: [{ type: "text", text: genererRapport(profil, { nom, hypotheses, lien, openfisca }) }] };
     },
   );
 

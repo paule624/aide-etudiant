@@ -14,6 +14,10 @@ export type Logement = "parents" | "crous" | "location" | "colocation";
 
 export type Zone = "idf" | "grande_ville" | "autre";
 
+export type SituationFamiliale = "seul" | "couple" | "marie_pacse";
+
+export type ActiviteConjoint = "actif" | "etudiant" | "chomeur" | "inactif";
+
 export type Profil = {
   age: number;
   nationalite: Nationalite;
@@ -47,6 +51,12 @@ export type Profil = {
   moisMobiliteInternationale: number;
   outreMer: boolean;
 
+  // Household
+  situationFamiliale: SituationFamiliale;
+  conjointAge: number;
+  conjointActivite: ActiviteConjoint;
+  conjointRevenusNetMensuel: number;
+
   // Territory (INSEE département codes, "" = not set)
   departementEtudes: string;
   departementFamille: string;
@@ -73,6 +83,7 @@ export type Statut = "eligible" | "possible" | "non_eligible";
 
 export type Evaluation = {
   statut: Statut;
+  exact?: boolean; // computed by OpenFisca rather than estimated
   montantAnnuel?: number; // estimated € per year (or one-shot)
   detail: string; // short explanation of the amount
   raisons: string[]; // why eligible / not eligible
@@ -90,7 +101,9 @@ export type Aide = {
   cumul?: string;
   // Loans and guarantees are not counted in the total
   compteDansTotal: boolean;
-  evaluer: (p: Profil) => Evaluation;
+  // Counted in the total only when the amount comes from OpenFisca
+  compteDansTotalSiExact?: boolean;
+  evaluer: (p: Profil, of?: ResultatOpenFisca | null) => Evaluation;
 };
 
 export type ResultatAide = Aide & { evaluation: Evaluation };
@@ -123,4 +136,16 @@ export type AideLocale = {
 export type ResultatAideLocale = AideLocale & {
   statut: Exclude<Statut, "non_eligible">;
   raisons: string[];
+};
+
+// --- Exact computations from OpenFisca (monthly amounts, € ) ---
+
+export type ResultatOpenFisca = {
+  aideLogement: number;
+  ppa: number;
+  rsa: number;
+  cssGratuite: boolean;
+  cssParticipation: number; // € / month, 0 when free or not eligible
+  cejConjoint: number;
+  salaireNet: number;
 };

@@ -65,6 +65,38 @@ export function SimulationForm({ profil, onChange }: Props) {
         <Toggle label="Rupture familiale / indépendant" checked={profil.independant} onChange={(v) => set("independant", v)} />
       </Section>
 
+      <Section titre="Foyer" aide="Couple, mariage ou PACS : APL, RSA et CSS sont calculés pour tout le foyer.">
+        <SelectField
+          label="Situation"
+          value={profil.situationFamiliale}
+          onChange={(v) => set("situationFamiliale", v)}
+          options={[
+            ["seul", "Seul(e)"],
+            ["couple", "En couple (union libre)"],
+            ["marie_pacse", "Marié(e) / pacsé(e)"],
+          ]}
+        />
+        {profil.situationFamiliale !== "seul" && (
+          <>
+            <NumberField label="Âge du conjoint" value={profil.conjointAge} onChange={(v) => set("conjointAge", v)} suffix="ans" />
+            <SelectField
+              label="Activité du conjoint"
+              value={profil.conjointActivite}
+              onChange={(v) => set("conjointActivite", v)}
+              options={[
+                ["actif", "En emploi"],
+                ["etudiant", "Étudiant(e)"],
+                ["chomeur", "Demandeur d'emploi"],
+                ["inactif", "Sans emploi ni études"],
+              ]}
+            />
+            {profil.conjointActivite === "actif" && (
+              <NumberField label="Revenus du conjoint" value={profil.conjointRevenusNetMensuel} onChange={(v) => set("conjointRevenusNetMensuel", v)} suffix="€ net / mois" step={50} />
+            )}
+          </>
+        )}
+      </Section>
+
       <Section titre="Logement">
         <SelectField
           label="Type de logement"
@@ -81,13 +113,13 @@ export function SimulationForm({ profil, onChange }: Props) {
           <>
             <NumberField label="Loyer hors charges" value={profil.loyer} onChange={(v) => set("loyer", v)} suffix="€ / mois" step={10} />
             <SelectField
-              label="Ville"
+              label="Zone APL"
               value={profil.zone}
               onChange={(v) => set("zone", v)}
               options={[
-                ["idf", "Île-de-France"],
-                ["grande_ville", "Agglomération > 100 000 hab."],
-                ["autre", "Autre commune"],
+                ["idf", "Paris et petite couronne (zone 1)"],
+                ["grande_ville", "Grande agglo > 100 000 hab. ou reste de l'IDF (zone 2)"],
+                ["autre", "Autre commune (zone 3)"],
               ]}
             />
           </>
