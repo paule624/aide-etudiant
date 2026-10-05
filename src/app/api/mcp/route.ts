@@ -15,7 +15,7 @@ import { departement } from "@/lib/geo";
 export const dynamic = "force-dynamic";
 
 const INSTRUCTIONS = `Simulateur des aides financières pour étudiants en France (${ANNEE_UNIVERSITAIRE}).
-Collectez le profil en conversation (âge, niveau, alternance, revenu brut global des parents, frères et sœurs, distance, logement, loyer, département d'études et département familial...) avant d'appeler simuler_aides.
+Collectez le profil en conversation (âge, niveau, alternance, situation de couple et activité du conjoint, revenu brut global des parents, frères et sœurs, distance, logement, loyer, département d'études et département familial...) avant d'appeler simuler_aides.
 Demandez toujours le département : il débloque les aides régionales, départementales et locales (transport, permis, équipement, aides aux apprentis).
 Ne demandez que ce qui est utile et proposez des valeurs approximatives si l'étudiant ne sait pas.
 Ce serveur ne stocke ni ne journalise aucune donnée. Rappelez que les montants sont des estimations.

@@ -29,7 +29,7 @@ export const profilShape = {
   independant: z.boolean().optional().describe("Rupture familiale ou indépendance financière avérée"),
   logement: z.enum(["parents", "crous", "location", "colocation"]).optional().describe("Type de logement pendant les études"),
   loyer: n().optional().describe("Loyer hors charges en €/mois"),
-  zone: z.enum(["idf", "grande_ville", "autre"]).optional().describe("idf = Île-de-France ; grande_ville = agglo > 100 000 hab. ; autre"),
+  zone: z.enum(["idf", "grande_ville", "autre"]).optional().describe("Zone APL : idf = Paris et petite couronne (zone 1) ; grande_ville = agglo > 100 000 hab. ou reste de l'IDF (zone 2) ; autre (zone 3)"),
   revenusActiviteNetMensuel: n().optional().describe("Revenus d'un job étudiant en € net/mois"),
   ressourcesAnnuelles: n().optional().describe("Ressources annuelles totales de l'étudiant (pour la complémentaire santé solidaire)"),
   neoBachelier: z.boolean().optional().describe("Bac obtenu cette année"),
@@ -37,6 +37,16 @@ export const profilShape = {
   changeAcademie: z.boolean().optional().describe("Change d'académie (après le bac) ou de région académique (entrée en M1)"),
   moisMobiliteInternationale: n().int().optional().describe("Durée en mois d'une mobilité à l'étranger prévue cette année (0 si aucune)"),
   outreMer: z.boolean().optional().describe("Étudiant originaire d'outre-mer qui étudie hors de son territoire"),
+  situationFamiliale: z
+    .enum(["seul", "couple", "marie_pacse"])
+    .optional()
+    .describe("seul ; couple = concubinage ; marie_pacse = marié ou pacsé. Un mariage prévu sous peu peut être simulé directement"),
+  conjointAge: n().int().max(99).optional().describe("Âge du conjoint (si en couple)"),
+  conjointActivite: z
+    .enum(["actif", "etudiant", "chomeur", "inactif"])
+    .optional()
+    .describe("Activité du conjoint : actif (en emploi), etudiant, chomeur (inscrit France Travail), inactif (sans emploi ni études)"),
+  conjointRevenusNetMensuel: n().optional().describe("Revenus d'activité du conjoint en € net / mois"),
   departementEtudes: z
     .string()
     .regex(/^(\d{2}|2A|2B|97\d)$/)
@@ -53,7 +63,10 @@ export const profilSchema = z.object(profilShape);
 export type ProfilPartiel = z.infer<typeof profilSchema>;
 
 export function completerProfil(partiel: ProfilPartiel): { profil: Profil; hypotheses: (keyof Profil)[] } {
-  const hypotheses = (Object.keys(PROFIL_DEFAUT) as (keyof Profil)[]).filter((k) => partiel[k] === undefined);
+  const seul = (partiel.situationFamiliale ?? PROFIL_DEFAUT.situationFamiliale) === "seul";
+  const hypotheses = (Object.keys(PROFIL_DEFAUT) as (keyof Profil)[]).filter(
+    (k) => partiel[k] === undefined && !(seul && k.startsWith("conjoint")),
+  );
   const defini = Object.fromEntries(Object.entries(partiel).filter(([, v]) => v !== undefined));
   return { profil: { ...PROFIL_DEFAUT, ...defini }, hypotheses };
 }

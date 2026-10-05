@@ -37,6 +37,8 @@ export function echelonBourse(p: Profil): Echelon | null {
 const estBoursier = (p: Profil) => echelonBourse(p) !== null;
 
 const SMIC_BRUT_MENSUEL = 1823.03;
+// Apprentices pay reduced contributions: net ≈ 90 % of gross
+const NET_APPRENTI = 0.9;
 
 // Indicative rent ceilings used by CAF (single person), € / month
 const PLAFOND_LOYER_APL = { idf: 335, grande_ville: 292, autre: 274 } as const;
@@ -49,7 +51,7 @@ export function estimerAPL(p: Profil): number {
   const base = Math.min(p.loyer, plafondLoyer) + FORFAIT_CHARGES;
   let aide = base * 0.75 - 40;
   // Own earnings above ~8 k€/year reduce the benefit
-  const revenus = p.revenusActiviteNetMensuel * 12 + (p.alternance ? p.salaireAlternanceBrut * 0.78 * 12 : 0);
+  const revenus = p.revenusActiviteNetMensuel * 12 + (p.alternance ? p.salaireAlternanceBrut * NET_APPRENTI * 12 : 0);
   if (revenus > 8000) aide -= (revenus - 8000) * 0.03;
   return Math.max(0, Math.min(Math.round(aide), 320));
 }
@@ -153,7 +155,10 @@ export const AIDES: Aide[] = [
       return {
         statut: "eligible",
         montantAnnuel: m * 12,
-        detail: `≈ ${m} € / mois (estimation, à confirmer sur caf.fr)`,
+        detail:
+          p.situationFamiliale === "seul"
+            ? `≈ ${m} € / mois (estimation, à confirmer sur caf.fr)`
+            : `≈ ${m} € / mois pour une personne seule ; en couple la CAF recalcule sur le foyer`,
         raisons: [`Loyer ${p.loyer} €, ${p.logement === "colocation" ? "colocation" : p.logement === "crous" ? "résidence Crous" : "location"}.`],
       };
     },
@@ -315,8 +320,10 @@ export const AIDES: Aide[] = [
     lien: "https://www.ameli.fr/assure/droits-demarches/difficultes-acces-droits-soins/complementaire-sante",
     compteDansTotal: false,
     evaluer: (p) => {
-      const autonome = p.independant || p.age >= 25 || p.logement !== "parents";
+      const autonome = p.independant || p.age >= 25 || p.logement !== "parents" || p.situationFamiliale !== "seul";
       if (!autonome) return { statut: "possible", detail: "Via le foyer de vos parents", raisons: ["Rattaché au foyer parental."] };
+      if (p.situationFamiliale !== "seul")
+        return { statut: "possible", detail: "Plafond couple ≈ 15 600 € / an pour la gratuité", raisons: ["Ressources de tout le foyer prises en compte."] };
       if (p.ressourcesAnnuelles === 0)
         return { statut: "possible", detail: "Renseignez vos ressources annuelles pour estimer", raisons: [] };
       if (p.ressourcesAnnuelles <= 10421)
@@ -338,10 +345,43 @@ export const AIDES: Aide[] = [
     compteDansTotal: false,
     evaluer: (p) => {
       if (p.age < 18) return non("18 ans minimum.");
-      const net = p.revenusActiviteNetMensuel + (p.alternance ? p.salaireAlternanceBrut * 0.78 : 0);
+      const net = p.revenusActiviteNetMensuel + (p.alternance ? p.salaireAlternanceBrut * NET_APPRENTI : 0);
       if (net >= 1117.26)
         return { statut: "eligible", detail: "Montant à simuler sur caf.fr", raisons: [`Revenus d'activité ≈ ${Math.round(net)} € net / mois.`] };
       return non(`Revenus d'activité (${Math.round(net)} € net/mois) sous le seuil de 1 117 €.`);
+    },
+  },
+  {
+    id: "rsa",
+    nom: "Revenu de solidarité active (RSA)",
+    organisme: "CAF",
+    categorie: "emploi",
+    resume: "Revenu minimum du foyer, complété selon les autres ressources. Ouvert avant 25 ans si le conjoint a 25 ans ou plus.",
+    montant: "Variable selon la composition et les ressources du foyer",
+    conditions: ["25 ans ou plus (vous ou votre conjoint)", "Ressources du foyer sous le montant forfaitaire", "Les étudiants seuls sont en principe exclus"],
+    lien: "https://www.service-public.fr/particuliers/vosdroits/N19775",
+    compteDansTotal: false,
+    evaluer: (p) => {
+      const ageOk = p.age >= 25 || (p.situationFamiliale !== "seul" && p.conjointAge >= 25);
+      if (!ageOk) return non("Ni vous ni votre conjoint n'avez 25 ans.");
+      return { statut: "possible", detail: "À simuler sur caf.fr", raisons: [] };
+    },
+  },
+  {
+    id: "cej-conjoint",
+    nom: "Contrat d'engagement jeune (conjoint)",
+    organisme: "France Travail / Mission locale",
+    categorie: "emploi",
+    resume: "Accompagnement intensif vers l'emploi avec une allocation mensuelle, pour les 16-25 ans sans emploi ni formation.",
+    montant: "Jusqu'à ≈ 560 € / mois selon les ressources",
+    conditions: ["Conjoint de 16 à 25 ans (29 ans si handicap)", "Sans emploi ni formation", "S'inscrire auprès de France Travail ou d'une Mission locale"],
+    lien: "https://www.service-public.fr/particuliers/vosdroits/F32700",
+    compteDansTotal: false,
+    evaluer: (p) => {
+      if (p.situationFamiliale === "seul") return non("Concerne le conjoint d'un étudiant en couple.");
+      if (p.conjointAge > 25 || p.conjointAge < 16) return non("Le conjoint doit avoir entre 16 et 25 ans.");
+      if (p.conjointActivite === "actif" || p.conjointActivite === "etudiant") return non("Le conjoint doit être sans emploi ni formation.");
+      return { statut: "possible", detail: "Allocation selon les ressources", raisons: [] };
     },
   },
   {

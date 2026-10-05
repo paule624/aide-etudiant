@@ -26,6 +26,10 @@ export const PROFIL_DEFAUT: Profil = {
   changeAcademie: false,
   moisMobiliteInternationale: 0,
   outreMer: false,
+  situationFamiliale: "seul",
+  conjointAge: 0,
+  conjointActivite: "actif",
+  conjointRevenusNetMensuel: 0,
   departementEtudes: "",
   departementFamille: "",
 };

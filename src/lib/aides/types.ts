@@ -14,6 +14,10 @@ export type Logement = "parents" | "crous" | "location" | "colocation";
 
 export type Zone = "idf" | "grande_ville" | "autre";
 
+export type SituationFamiliale = "seul" | "couple" | "marie_pacse";
+
+export type ActiviteConjoint = "actif" | "etudiant" | "chomeur" | "inactif";
+
 export type Profil = {
   age: number;
   nationalite: Nationalite;
@@ -46,6 +50,12 @@ export type Profil = {
   changeAcademie: boolean;
   moisMobiliteInternationale: number;
   outreMer: boolean;
+
+  // Household
+  situationFamiliale: SituationFamiliale;
+  conjointAge: number;
+  conjointActivite: ActiviteConjoint;
+  conjointRevenusNetMensuel: number;
 
   // Territory (INSEE département codes, "" = not set)
   departementEtudes: string;

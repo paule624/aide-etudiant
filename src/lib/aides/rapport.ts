@@ -28,6 +28,10 @@ export const LIBELLES_CHAMPS: Record<keyof Profil, string> = {
   changeAcademie: "Changement d'académie",
   moisMobiliteInternationale: "Mobilité internationale",
   outreMer: "Originaire d'outre-mer",
+  situationFamiliale: "Situation familiale",
+  conjointAge: "Âge du conjoint",
+  conjointActivite: "Activité du conjoint",
+  conjointRevenusNetMensuel: "Revenus du conjoint",
   departementEtudes: "Département d'études",
   departementFamille: "Département familial",
 };
