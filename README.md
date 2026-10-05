@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Simulateur d'aides étudiantes 2026-2027
 
-## Getting Started
+Estime les aides auxquelles un étudiant a droit (bourse Crous, APL, mérite, mobilité, CSS…).
 
-First, run the development server:
+- `/` — simulations (stockées dans le navigateur uniquement), export JSON, rapport Markdown, lien de partage
+- `/aides` — panel de toutes les aides recensées
+- `/api/mcp` — serveur MCP (Streamable HTTP, sans état)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm dev        # http://localhost:3000
+pnpm typecheck
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Moteur
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`src/lib/aides/` : `bareme.ts` (bourse sur critères sociaux), `catalogue.ts` (règles par aide), `rapport.ts`, `share.ts`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## MCP
 
-## Learn More
+Outils : `simuler_aides`, `exporter_rapport`, `lister_aides`.
 
-To learn more about Next.js, take a look at the following resources:
+- Claude Code : `claude mcp add --transport http aides-etudiantes https://<domaine>/api/mcp`
+- claude.ai : Paramètres → Connecteurs → Ajouter un connecteur personnalisé → `https://<domaine>/api/mcp`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Confidentialité
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Le serveur MCP est sans état : aucune base, aucune session, aucun `console.log`, réponses `Cache-Control: no-store`.
+- Le lien de simulation transporte le profil dans le fragment d'URL (`#p=…`), jamais envoyé au serveur.
+- Sur Vercel, les logs de requêtes contiennent méthode/chemin/statut mais pas les corps de requête.
+- Les informations saisies dans une conversation restent visibles par le client IA utilisé.
