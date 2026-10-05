@@ -46,6 +46,10 @@ export type Profil = {
   changeAcademie: boolean;
   moisMobiliteInternationale: number;
   outreMer: boolean;
+
+  // Territory (INSEE département codes, "" = not set)
+  departementEtudes: string;
+  departementFamille: string;
 };
 
 export type Simulation = {
@@ -90,3 +94,33 @@ export type Aide = {
 };
 
 export type ResultatAide = Aide & { evaluation: Evaluation };
+
+// --- Local / specific aids synced from betagouv/aides-jeunes ---
+
+export type ProfilCible = "etudiant" | "lyceen" | "apprenti" | "stagiaire";
+
+export type AideLocale = {
+  id: string;
+  nom: string;
+  organisme: string;
+  niveau: "national" | "region" | "departement" | "local";
+  description: string;
+  conditions: string[];
+  montant?: number;
+  unite?: string;
+  periodicite: "annuelle" | "mensuelle" | "ponctuelle" | "autre";
+  legende?: string;
+  lien: string;
+  ageMin?: number;
+  ageMax?: number;
+  regions: string[];
+  departements: string[];
+  communes: string[];
+  profils: ProfilCible[]; // empty = open to everyone
+  autresConditions: string[];
+};
+
+export type ResultatAideLocale = AideLocale & {
+  statut: Exclude<Statut, "non_eligible">;
+  raisons: string[];
+};

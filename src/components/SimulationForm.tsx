@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { Profil } from "@/lib/aides/types";
+import { DEPARTEMENTS } from "@/lib/geo";
 
 type Props = {
   profil: Profil;
@@ -13,6 +14,11 @@ export function SimulationForm({ profil, onChange }: Props) {
 
   return (
     <div className="space-y-6">
+      <Section titre="Territoire" aide="Pour trouver les aides de votre région, département et ville (transport, permis, équipement…).">
+        <DepartementField label="Département du lieu d'études" value={profil.departementEtudes} onChange={(v) => set("departementEtudes", v)} />
+        <DepartementField label="Département du domicile familial" value={profil.departementFamille} onChange={(v) => set("departementFamille", v)} />
+      </Section>
+
       <Section titre="Études">
         <NumberField label="Âge au 1er septembre" value={profil.age} onChange={(v) => set("age", v)} suffix="ans" />
         <SelectField
@@ -143,6 +149,22 @@ function SelectField<T extends string>({ label, value, onChange, options }: { la
         {options.map(([v, l]) => (
           <option key={v} value={v}>
             {l}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function DepartementField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+        <option value="">— Non renseigné —</option>
+        {DEPARTEMENTS.map((d) => (
+          <option key={d.code} value={d.code}>
+            {d.code} · {d.nom}
           </option>
         ))}
       </select>

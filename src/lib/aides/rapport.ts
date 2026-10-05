@@ -1,5 +1,6 @@
 import { ANNEE_UNIVERSITAIRE } from "./bareme";
 import { CATEGORIES } from "./catalogue";
+import { montantLocal } from "./locales";
 import { euros, simuler } from "./simulate";
 import type { Profil } from "./types";
 
@@ -27,6 +28,8 @@ export const LIBELLES_CHAMPS: Record<keyof Profil, string> = {
   changeAcademie: "Changement d'académie",
   moisMobiliteInternationale: "Mobilité internationale",
   outreMer: "Originaire d'outre-mer",
+  departementEtudes: "Département d'études",
+  departementFamille: "Département familial",
 };
 
 const CALENDRIER = [
@@ -37,7 +40,7 @@ const CALENDRIER = [
 ];
 
 export function genererRapport(profil: Profil, opts: { nom?: string; hypotheses?: (keyof Profil)[]; lien?: string } = {}) {
-  const { resultats, total } = simuler(profil);
+  const { resultats, aidesLocales, total } = simuler(profil);
   const eligibles = resultats.filter((r) => r.evaluation.statut === "eligible");
   const possibles = resultats.filter((r) => r.evaluation.statut === "possible");
   const l: string[] = [];
@@ -64,6 +67,17 @@ export function genererRapport(profil: Profil, opts: { nom?: string; hypotheses?
       l.push(`- **[${r.nom}](${r.lien})** (${CATEGORIES[r.categorie]}) — ${r.evaluation.detail || r.montant}`);
     }
     l.push("");
+  }
+
+  if (aidesLocales.length) {
+    const MAX = 25;
+    l.push("## Aides de votre territoire", "");
+    for (const a of aidesLocales.slice(0, MAX)) {
+      const tag = a.statut === "eligible" ? "" : " _(à vérifier)_";
+      l.push(`- **[${a.nom}](${a.lien})** — ${a.organisme} · ${montantLocal(a)}${tag}`);
+    }
+    if (aidesLocales.length > MAX) l.push(`- … et ${aidesLocales.length - MAX} autres dans le simulateur`);
+    l.push("", "_Aides locales : données aides-jeunes (beta.gouv, AGPL-3.0)._", "");
   }
 
   if (opts.hypotheses?.length) {

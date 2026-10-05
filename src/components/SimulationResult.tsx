@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORIES } from "@/lib/aides/catalogue";
 import { euros, simuler } from "@/lib/aides/simulate";
 import type { Profil, ResultatAide, Statut } from "@/lib/aides/types";
+import { AideLocaleCard } from "./AideLocaleCard";
 
 const LIBELLE_STATUT: Record<Statut, string> = {
   eligible: "Éligible",
@@ -18,7 +19,7 @@ export const BADGE_STATUT: Record<Statut, string> = {
 };
 
 export function SimulationResult({ profil }: { profil: Profil }) {
-  const { resultats, total, nbEligibles, nbPossibles } = simuler(profil);
+  const { resultats, aidesLocales, total, nbEligibles, nbPossibles } = simuler(profil);
   const [voirNonEligibles, setVoirNonEligibles] = useState(false);
   const visibles = resultats.filter((r) => voirNonEligibles || r.evaluation.statut !== "non_eligible");
   const nbNon = resultats.length - nbEligibles - nbPossibles;
@@ -45,9 +46,33 @@ export function SimulationResult({ profil }: { profil: Profil }) {
         </button>
       )}
 
+      <section className="space-y-2 pt-2">
+        <h3 className="text-sm font-semibold text-ink">
+          Aides de votre territoire{aidesLocales.length > 0 && ` (${aidesLocales.length})`}
+        </h3>
+        {!profil.departementEtudes && !profil.departementFamille ? (
+          <p className="rounded-xl border border-dashed border-line p-4 text-sm text-muted">
+            Renseignez un département (section Territoire) pour voir les aides régionales, départementales et locales.
+          </p>
+        ) : aidesLocales.length === 0 ? (
+          <p className="text-sm text-muted">Aucune aide locale recensée pour ce profil.</p>
+        ) : (
+          <ul className="space-y-2">
+            {aidesLocales.map((a) => (
+              <AideLocaleCard key={a.id} aide={a} />
+            ))}
+          </ul>
+        )}
+      </section>
+
       <p className="text-xs text-muted">
         Estimations indicatives basées sur les barèmes 2026-2027. Seuls les organismes (Crous, CAF…) déterminent vos droits réels.
-        Les prêts, garanties et aides non chiffrables ne sont pas comptés dans le total.
+        Les prêts, garanties, aides locales et aides non chiffrables ne sont pas comptés dans le total.
+        Aides locales : données{" "}
+        <a href="https://github.com/betagouv/aides-jeunes" target="_blank" rel="noreferrer" className="underline">
+          aides-jeunes
+        </a>{" "}
+        (beta.gouv, AGPL-3.0).
       </p>
     </div>
   );

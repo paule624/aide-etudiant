@@ -4,11 +4,16 @@ import { useState } from "react";
 import { ECHELONS, MONTANTS_ECHELON } from "@/lib/aides/bareme";
 import { AIDES, CATEGORIES } from "@/lib/aides/catalogue";
 import { euros } from "@/lib/aides/simulate";
-import type { Categorie } from "@/lib/aides/types";
+import { aidesLocalesDuDepartement, AIDES_LOCALES } from "@/lib/aides/locales";
+import type { Categorie, ProfilCible } from "@/lib/aides/types";
+import { DEPARTEMENTS } from "@/lib/geo";
+import { AideLocaleCard } from "./AideLocaleCard";
 
 export function CataloguePanel() {
   const [recherche, setRecherche] = useState("");
   const [categorie, setCategorie] = useState<Categorie | "toutes">("toutes");
+  const [dep, setDep] = useState("");
+  const [cible, setCible] = useState<ProfilCible | "">("");
 
   const q = recherche.trim().toLowerCase();
   const aides = AIDES.filter(
@@ -16,6 +21,12 @@ export function CataloguePanel() {
       (categorie === "toutes" || a.categorie === categorie) &&
       (!q || [a.nom, a.organisme, a.resume, ...a.conditions].join(" ").toLowerCase().includes(q)),
   );
+
+  const locales = dep
+    ? aidesLocalesDuDepartement(dep, cible || undefined).filter(
+        (a) => !q || [a.nom, a.organisme, a.description].join(" ").toLowerCase().includes(q),
+      )
+    : [];
 
   return (
     <div className="mt-6 space-y-6">
@@ -92,6 +103,50 @@ export function CataloguePanel() {
           </article>
         ))}
       </div>
+
+      <section className="space-y-3 border-t border-line pt-6">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">Aides locales & alternance</h2>
+          <p className="text-sm text-muted">
+            {AIDES_LOCALES.length} aides de régions, départements et villes (transport, permis, équipement, logement…), issues de{" "}
+            <a href="https://github.com/betagouv/aides-jeunes" target="_blank" rel="noreferrer" className="underline">
+              aides-jeunes
+            </a>{" "}
+            (beta.gouv).
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <select value={dep} onChange={(e) => setDep(e.target.value)} className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink sm:w-72">
+            <option value="">Choisir un département…</option>
+            {DEPARTEMENTS.map((d) => (
+              <option key={d.code} value={d.code}>
+                {d.code} · {d.nom}
+              </option>
+            ))}
+          </select>
+          <div className="flex gap-1">
+            {([["", "Tous"], ["etudiant", "Étudiant"], ["apprenti", "Alternant"], ["lyceen", "Lycéen"]] as const).map(([v, l]) => (
+              <button
+                key={v}
+                onClick={() => setCible(v)}
+                className={`rounded-full px-3 py-1 text-xs ${cible === v ? "bg-accent text-white" : "border border-line text-muted hover:text-ink"}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        {dep && (
+          <>
+            <p className="text-sm text-muted">{locales.length} aide(s)</p>
+            <ul className="grid gap-2 md:grid-cols-2">
+              {locales.map((a) => (
+                <AideLocaleCard key={a.id} aide={a} />
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
     </div>
   );
 }

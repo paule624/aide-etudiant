@@ -37,6 +37,16 @@ export const profilShape = {
   changeAcademie: z.boolean().optional().describe("Change d'académie (après le bac) ou de région académique (entrée en M1)"),
   moisMobiliteInternationale: n().int().optional().describe("Durée en mois d'une mobilité à l'étranger prévue cette année (0 si aucune)"),
   outreMer: z.boolean().optional().describe("Étudiant originaire d'outre-mer qui étudie hors de son territoire"),
+  departementEtudes: z
+    .string()
+    .regex(/^(\d{2}|2A|2B|97\d)$/)
+    .optional()
+    .describe("Code INSEE du département du lieu d'études, ex. '69', '2A', '974'. Active la recherche des aides régionales, départementales et locales"),
+  departementFamille: z
+    .string()
+    .regex(/^(\d{2}|2A|2B|97\d)$/)
+    .optional()
+    .describe("Code INSEE du département du domicile familial (certaines aides dépendent de la résidence des parents)"),
 };
 
 export const profilSchema = z.object(profilShape);
