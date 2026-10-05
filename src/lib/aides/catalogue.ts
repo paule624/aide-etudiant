@@ -360,6 +360,51 @@ export const AIDES: Aide[] = [
         : non("Réservé aux apprentis majeurs."),
   },
   {
+    id: "transport-employeur",
+    nom: "Remboursement de 50 % de l'abonnement transport",
+    organisme: "Employeur",
+    categorie: "emploi",
+    resume: "L'employeur doit rembourser la moitié de l'abonnement aux transports en commun (ou vélo en location) de ses salariés, apprentis compris.",
+    montant: "50 % de l'abonnement (ex. ≈ 44 € / mois sur un Navigo à 88,80 €)",
+    conditions: ["Être salarié, apprenti ou en contrat pro", "Abonnement transport en commun pour le trajet domicile-travail"],
+    lien: "https://www.service-public.fr/particuliers/vosdroits/F19846",
+    compteDansTotal: false,
+    evaluer: (p) =>
+      p.alternance || p.revenusActiviteNetMensuel > 0
+        ? { statut: "eligible", detail: "Obligatoire pour l'employeur, sur justificatif", raisons: [p.alternance ? "Alternant salarié." : "Salarié (job étudiant)."] }
+        : non("Réservé aux salariés et alternants."),
+  },
+  {
+    id: "forfait-mobilites",
+    nom: "Forfait mobilités durables",
+    organisme: "Employeur",
+    categorie: "emploi",
+    resume: "Prise en charge facultative des trajets à vélo, covoiturage, trottinette ou transports partagés.",
+    montant: "Jusqu'à 600 € / an exonérés (900 € cumulé avec l'abonnement transport)",
+    conditions: ["Salarié ou apprenti", "Dispositif mis en place par l'employeur (facultatif)"],
+    lien: "https://www.service-public.fr/particuliers/vosdroits/F33808",
+    compteDansTotal: false,
+    evaluer: (p) =>
+      p.alternance || p.revenusActiviteNetMensuel > 0
+        ? { statut: "possible", detail: "Si votre employeur l'a mis en place", raisons: [] }
+        : non("Réservé aux salariés et alternants."),
+  },
+  {
+    id: "carte-etudiant-metiers",
+    nom: "Carte d'étudiant des métiers",
+    organisme: "CFA",
+    categorie: "vie_quotidienne",
+    resume: "Donne aux apprentis les mêmes réductions que les étudiants (resto U, cinéma, transports, logement Crous…).",
+    montant: "Réductions étudiantes",
+    conditions: ["Apprenti préparant un diplôme du CAP au BTS / licence pro", "Délivrée gratuitement par le CFA"],
+    lien: "https://www.service-public.fr/particuliers/vosdroits/F2918",
+    compteDansTotal: false,
+    evaluer: (p) =>
+      p.alternance
+        ? { statut: "eligible", detail: "À demander à votre CFA", raisons: ["Apprenti."] }
+        : non("Réservée aux apprentis."),
+  },
+  {
     id: "fnau-ponctuelle",
     nom: "Aide ponctuelle d'urgence (FNAU)",
     organisme: "Crous — service social",
