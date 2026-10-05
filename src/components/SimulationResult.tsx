@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/aides/catalogue";
 import { euros, simuler } from "@/lib/aides/simulate";
-import { useOpenFisca } from "@/lib/useOpenFisca";
 import type { Profil, ResultatAide, Statut } from "@/lib/aides/types";
 import { AideLocaleCard } from "./AideLocaleCard";
 
@@ -20,8 +19,7 @@ export const BADGE_STATUT: Record<Statut, string> = {
 };
 
 export function SimulationResult({ profil }: { profil: Profil }) {
-  const { openfisca, chargement } = useOpenFisca(profil);
-  const { resultats, aidesLocales, total, nbEligibles, nbPossibles, calculsExacts } = simuler(profil, openfisca);
+  const { resultats, aidesLocales, total, nbEligibles, nbPossibles } = simuler(profil);
   const [voirNonEligibles, setVoirNonEligibles] = useState(false);
   const visibles = resultats.filter((r) => voirNonEligibles || r.evaluation.statut !== "non_eligible");
   const nbNon = resultats.length - nbEligibles - nbPossibles;
@@ -33,13 +31,6 @@ export function SimulationResult({ profil }: { profil: Profil }) {
         <p className="mt-1 text-4xl font-bold tabular-nums">{euros(total)}</p>
         <p className="mt-1 text-sm opacity-80">
           soit ≈ {euros(total / 12)} / mois · {nbEligibles} aide(s) éligible(s), {nbPossibles} à vérifier
-        </p>
-        <p className="mt-2 text-xs opacity-80">
-          {chargement
-            ? "Calcul exact en cours…"
-            : calculsExacts
-              ? "✓ APL, prime d'activité, RSA et CSS calculés avec OpenFisca (moteur officiel)"
-              : "Calcul exact indisponible : APL et prime d'activité estimées"}
         </p>
       </div>
 
@@ -90,7 +81,6 @@ export function SimulationResult({ profil }: { profil: Profil }) {
 function CarteResultat({ r }: { r: ResultatAide }) {
   const [ouvert, setOuvert] = useState(false);
   const { statut, montantAnnuel, detail, raisons } = r.evaluation;
-  const compte = r.compteDansTotal || (r.compteDansTotalSiExact && r.evaluation.exact);
 
   return (
     <li className={`rounded-xl border border-line bg-surface ${statut === "non_eligible" ? "opacity-70" : ""}`}>
@@ -99,7 +89,6 @@ function CarteResultat({ r }: { r: ResultatAide }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium text-ink">{r.nom}</span>
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${BADGE_STATUT[statut]}`}>{LIBELLE_STATUT[statut]}</span>
-            {r.evaluation.exact && <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">Calcul exact</span>}
           </div>
           <p className="mt-0.5 text-xs text-muted">
             {r.organisme} · {CATEGORIES[r.categorie]}
@@ -107,7 +96,7 @@ function CarteResultat({ r }: { r: ResultatAide }) {
           </p>
         </div>
         {montantAnnuel !== undefined && statut === "eligible" && (
-          <span className={`shrink-0 font-semibold tabular-nums ${compte ? "text-ink" : "text-muted"}`}>{euros(montantAnnuel)}</span>
+          <span className={`shrink-0 font-semibold tabular-nums ${r.compteDansTotal ? "text-ink" : "text-muted"}`}>{euros(montantAnnuel)}</span>
         )}
       </button>
       {ouvert && (

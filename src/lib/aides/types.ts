@@ -83,7 +83,6 @@ export type Statut = "eligible" | "possible" | "non_eligible";
 
 export type Evaluation = {
   statut: Statut;
-  exact?: boolean; // computed by OpenFisca rather than estimated
   montantAnnuel?: number; // estimated € per year (or one-shot)
   detail: string; // short explanation of the amount
   raisons: string[]; // why eligible / not eligible
@@ -101,9 +100,7 @@ export type Aide = {
   cumul?: string;
   // Loans and guarantees are not counted in the total
   compteDansTotal: boolean;
-  // Counted in the total only when the amount comes from OpenFisca
-  compteDansTotalSiExact?: boolean;
-  evaluer: (p: Profil, of?: ResultatOpenFisca | null) => Evaluation;
+  evaluer: (p: Profil) => Evaluation;
 };
 
 export type ResultatAide = Aide & { evaluation: Evaluation };
@@ -136,16 +133,4 @@ export type AideLocale = {
 export type ResultatAideLocale = AideLocale & {
   statut: Exclude<Statut, "non_eligible">;
   raisons: string[];
-};
-
-// --- Exact computations from OpenFisca (monthly amounts, € ) ---
-
-export type ResultatOpenFisca = {
-  aideLogement: number;
-  ppa: number;
-  rsa: number;
-  cssGratuite: boolean;
-  cssParticipation: number; // € / month, 0 when free or not eligible
-  cejConjoint: number;
-  salaireNet: number;
 };

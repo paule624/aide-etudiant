@@ -1,6 +1,6 @@
 import { AIDES } from "./catalogue";
 import { aidesLocalesPour } from "./locales";
-import type { Profil, ResultatAide, ResultatOpenFisca, Simulation } from "./types";
+import type { Profil, ResultatAide, Simulation } from "./types";
 
 export const PROFIL_DEFAUT: Profil = {
   age: 18,
@@ -36,20 +36,18 @@ export const PROFIL_DEFAUT: Profil = {
 
 const ORDRE = { eligible: 0, possible: 1, non_eligible: 2 } as const;
 
-export function simuler(profil: Profil, openfisca?: ResultatOpenFisca | null) {
-  const resultats: ResultatAide[] = AIDES.map((a) => ({ ...a, evaluation: a.evaluer(profil, openfisca) })).sort(
+export function simuler(profil: Profil) {
+  const resultats: ResultatAide[] = AIDES.map((a) => ({ ...a, evaluation: a.evaluer(profil) })).sort(
     (a, b) =>
       ORDRE[a.evaluation.statut] - ORDRE[b.evaluation.statut] ||
       (b.evaluation.montantAnnuel ?? 0) - (a.evaluation.montantAnnuel ?? 0),
   );
   const total = resultats
-    .filter((r) => r.evaluation.statut === "eligible")
-    .filter((r) => r.compteDansTotal || (r.compteDansTotalSiExact && r.evaluation.exact))
+    .filter((r) => r.compteDansTotal && r.evaluation.statut === "eligible")
     .reduce((s, r) => s + (r.evaluation.montantAnnuel ?? 0), 0);
   return {
     resultats,
     aidesLocales: aidesLocalesPour(profil),
-    calculsExacts: Boolean(openfisca),
     total,
     nbEligibles: resultats.filter((r) => r.evaluation.statut === "eligible").length,
     nbPossibles: resultats.filter((r) => r.evaluation.statut === "possible").length,

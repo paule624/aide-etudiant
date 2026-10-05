@@ -2,7 +2,7 @@ import { ANNEE_UNIVERSITAIRE } from "./bareme";
 import { CATEGORIES } from "./catalogue";
 import { montantLocal } from "./locales";
 import { euros, simuler } from "./simulate";
-import type { Profil, ResultatOpenFisca } from "./types";
+import type { Profil } from "./types";
 
 export const LIBELLES_CHAMPS: Record<keyof Profil, string> = {
   age: "Âge",
@@ -43,28 +43,19 @@ const CALENDRIER = [
   "À la rentrée : aide à la mobilité master, aide au mérite (automatique si boursier)",
 ];
 
-export function genererRapport(
-  profil: Profil,
-  opts: { nom?: string; hypotheses?: (keyof Profil)[]; lien?: string; openfisca?: ResultatOpenFisca | null } = {},
-) {
-  const { resultats, aidesLocales, total, calculsExacts } = simuler(profil, opts.openfisca);
+export function genererRapport(profil: Profil, opts: { nom?: string; hypotheses?: (keyof Profil)[]; lien?: string } = {}) {
+  const { resultats, aidesLocales, total } = simuler(profil);
   const eligibles = resultats.filter((r) => r.evaluation.statut === "eligible");
   const possibles = resultats.filter((r) => r.evaluation.statut === "possible");
   const l: string[] = [];
 
   l.push(`# ${opts.nom ?? "Simulation d'aides étudiantes"} — ${ANNEE_UNIVERSITAIRE}`, "");
   l.push(`**Total estimé : ${euros(total)} / an** (≈ ${euros(total / 12)} / mois), hors prêts et garanties.`, "");
-  l.push(
-    calculsExacts
-      ? "APL, prime d'activité, RSA, CSS et CEJ calculés avec [OpenFisca](https://openfisca.org), le moteur de calcul officiel des prestations."
-      : "_Calcul exact indisponible : l'APL et la prime d'activité sont des estimations._",
-    "",
-  );
 
   if (eligibles.length) {
     l.push("## Aides auxquelles vous semblez éligible", "", "| Aide | Organisme | Estimation | Détail |", "|---|---|---|---|");
     for (const r of eligibles) {
-      const m = r.evaluation.montantAnnuel !== undefined ? euros(r.evaluation.montantAnnuel) + (r.evaluation.exact ? " ✓" : "") : "—";
+      const m = r.evaluation.montantAnnuel !== undefined ? euros(r.evaluation.montantAnnuel) : "—";
       l.push(`| [${r.nom}](${r.lien}) | ${r.organisme} | ${m} | ${r.evaluation.detail} |`);
     }
     l.push("");
@@ -105,7 +96,7 @@ export function genererRapport(
   l.push("## Calendrier des démarches", "", ...CALENDRIER.map((c) => `- ${c}`), "");
   if (opts.lien) l.push(`[Ouvrir et ajuster cette simulation](${opts.lien})`, "");
   l.push(
-    "_✓ = calcul exact OpenFisca pour la situation déclarée. Seuls le Crous, la CAF et les organismes concernés déterminent les droits réels._",
+    "_Estimations indicatives basées sur les barèmes publiés. Seuls le Crous, la CAF et les organismes concernés déterminent les droits réels. L'APL est une approximation : utilisez le simulateur de caf.fr._",
   );
   return l.join("\n");
 }

@@ -111,6 +111,9 @@ function main() {
       ),
     ];
     if (profilsAvecConditions) autresConditions.push("Conditions supplémentaires selon le profil");
+    // Some aids only state their target training in the label
+    if (/sanitaire|paramédical|paramedical/i.test(String(b.label)) && !autresConditions.includes(LIBELLES_CONDITIONS.formation_sanitaire_social))
+      autresConditions.push(LIBELLES_CONDITIONS.formation_sanitaire_social);
 
     aides.push({
       id: basename(f, ".yml"),

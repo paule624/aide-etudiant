@@ -6,7 +6,7 @@ import { SimulationResult } from "@/components/SimulationResult";
 import { genererRapport } from "@/lib/aides/rapport";
 import { lienSimulation, lireFragment } from "@/lib/aides/share";
 import { euros, nouvelleSimulation, simuler } from "@/lib/aides/simulate";
-import type { ResultatOpenFisca, Simulation } from "@/lib/aides/types";
+import type { Simulation } from "@/lib/aides/types";
 import { useSimulations } from "@/lib/storage";
 
 type Vue = "saisie" | "resultat";
@@ -51,13 +51,9 @@ export default function SimulationsPage() {
   const exporter = () =>
     telecharger(JSON.stringify(simulations, null, 2), "simulations-aides-etudiantes.json", "application/json");
 
-  const exporterRapport = async (sim: Simulation) => {
+  const exporterRapport = (sim: Simulation) => {
     const lien = lienSimulation(window.location.origin, sim.profil, sim.nom);
-    const openfisca = await fetch("/api/calcul", { method: "POST", body: JSON.stringify(sim.profil) })
-      .then((r) => r.json() as Promise<{ openfisca: ResultatOpenFisca | null }>)
-      .then((d) => d.openfisca)
-      .catch(() => null);
-    telecharger(genererRapport(sim.profil, { nom: sim.nom, lien, openfisca }), `${sim.nom}.md`, "text/markdown");
+    telecharger(genererRapport(sim.profil, { nom: sim.nom, lien }), `${sim.nom}.md`, "text/markdown");
   };
 
   const copierLien = async (sim: Simulation) => {

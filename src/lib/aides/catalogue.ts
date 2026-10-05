@@ -37,6 +37,8 @@ export function echelonBourse(p: Profil): Echelon | null {
 const estBoursier = (p: Profil) => echelonBourse(p) !== null;
 
 const SMIC_BRUT_MENSUEL = 1823.03;
+// Apprentices pay reduced contributions: net ≈ 90 % of gross
+const NET_APPRENTI = 0.9;
 
 // Indicative rent ceilings used by CAF (single person), € / month
 const PLAFOND_LOYER_APL = { idf: 335, grande_ville: 292, autre: 274 } as const;
@@ -49,7 +51,7 @@ export function estimerAPL(p: Profil): number {
   const base = Math.min(p.loyer, plafondLoyer) + FORFAIT_CHARGES;
   let aide = base * 0.75 - 40;
   // Own earnings above ~8 k€/year reduce the benefit
-  const revenus = p.revenusActiviteNetMensuel * 12 + (p.alternance ? p.salaireAlternanceBrut * 0.78 * 12 : 0);
+  const revenus = p.revenusActiviteNetMensuel * 12 + (p.alternance ? p.salaireAlternanceBrut * NET_APPRENTI * 12 : 0);
   if (revenus > 8000) aide -= (revenus - 8000) * 0.03;
   return Math.max(0, Math.min(Math.round(aide), 320));
 }
@@ -145,25 +147,18 @@ export const AIDES: Aide[] = [
     lien: "https://www.caf.fr/allocataires/mes-services-en-ligne/estimer-vos-droits/simulation-aide-au-logement",
     cumul: "Cumulable avec la bourse. Si vous touchez l'APL, vos parents perdent la part fiscale/allocations liées.",
     compteDansTotal: true,
-    evaluer: (p, of) => {
+    evaluer: (p) => {
       if (p.logement === "parents") return non("Vous vivez chez vos parents.");
       if (p.loyer <= 0) return { statut: "possible", detail: "Renseignez un loyer pour estimer.", raisons: [] };
-      if (of) {
-        if (of.aideLogement <= 0) return non("Ressources du foyer trop élevées au regard du loyer.");
-        return {
-          statut: "eligible",
-          exact: true,
-          montantAnnuel: Math.round(of.aideLogement * 12),
-          detail: `${Math.round(of.aideLogement)} € / mois`,
-          raisons: [`Loyer ${p.loyer} €, foyer ${p.situationFamiliale === "seul" ? "d'une personne" : "en couple"}.`],
-        };
-      }
       const m = estimerAPL(p);
       if (m <= 0) return non("Ressources trop élevées au regard du loyer (estimation).");
       return {
         statut: "eligible",
         montantAnnuel: m * 12,
-        detail: `≈ ${m} € / mois (estimation, à confirmer sur caf.fr)`,
+        detail:
+          p.situationFamiliale === "seul"
+            ? `≈ ${m} € / mois (estimation, à confirmer sur caf.fr)`
+            : `≈ ${m} € / mois pour une personne seule ; en couple la CAF recalcule sur le foyer`,
         raisons: [`Loyer ${p.loyer} €, ${p.logement === "colocation" ? "colocation" : p.logement === "crous" ? "résidence Crous" : "location"}.`],
       };
     },
@@ -324,16 +319,11 @@ export const AIDES: Aide[] = [
     conditions: ["Ressources sous les plafonds", "Demande individuelle si indépendant ou plus de 25 ans"],
     lien: "https://www.ameli.fr/assure/droits-demarches/difficultes-acces-droits-soins/complementaire-sante",
     compteDansTotal: false,
-    evaluer: (p, of) => {
+    evaluer: (p) => {
       const autonome = p.independant || p.age >= 25 || p.logement !== "parents" || p.situationFamiliale !== "seul";
       if (!autonome) return { statut: "possible", detail: "Via le foyer de vos parents", raisons: ["Rattaché au foyer parental."] };
-      if (of) {
-        if (of.cssGratuite)
-          return { statut: "eligible", exact: true, detail: "Gratuite", raisons: ["Ressources du foyer sous le plafond de gratuité."] };
-        if (of.cssParticipation > 0)
-          return { statut: "eligible", exact: true, detail: `Participation de ${of.cssParticipation} € / mois`, raisons: [] };
-        return non("Ressources du foyer au-dessus des plafonds.");
-      }
+      if (p.situationFamiliale !== "seul")
+        return { statut: "possible", detail: "Plafond couple ≈ 15 600 € / an pour la gratuité", raisons: ["Ressources de tout le foyer prises en compte."] };
       if (p.ressourcesAnnuelles === 0)
         return { statut: "possible", detail: "Renseignez vos ressources annuelles pour estimer", raisons: [] };
       if (p.ressourcesAnnuelles <= 10421)
@@ -353,17 +343,9 @@ export const AIDES: Aide[] = [
     conditions: ["18 ans ou plus", "Revenus d'activité ≥ 1 117 € net / mois (moyenne sur 3 mois)"],
     lien: "https://www.caf.fr/allocataires/aides-et-demarches/droits-et-prestations/vie-professionnelle/la-prime-d-activite",
     compteDansTotal: false,
-    compteDansTotalSiExact: true,
-    evaluer: (p, of) => {
+    evaluer: (p) => {
       if (p.age < 18) return non("18 ans minimum.");
-      if (of) {
-        if (of.ppa > 0)
-          return { statut: "eligible", exact: true, montantAnnuel: Math.round(of.ppa * 12), detail: `${Math.round(of.ppa)} € / mois`, raisons: [] };
-        return non(
-          `Pas de droit avec ces revenus (≈ ${Math.round(of.salaireNet)} € net / mois ; les étudiants et apprentis doivent gagner au moins 1 117 € net).`,
-        );
-      }
-      const net = p.revenusActiviteNetMensuel + (p.alternance ? p.salaireAlternanceBrut * 0.78 : 0);
+      const net = p.revenusActiviteNetMensuel + (p.alternance ? p.salaireAlternanceBrut * NET_APPRENTI : 0);
       if (net >= 1117.26)
         return { statut: "eligible", detail: "Montant à simuler sur caf.fr", raisons: [`Revenus d'activité ≈ ${Math.round(net)} € net / mois.`] };
       return non(`Revenus d'activité (${Math.round(net)} € net/mois) sous le seuil de 1 117 €.`);
@@ -379,14 +361,9 @@ export const AIDES: Aide[] = [
     conditions: ["25 ans ou plus (vous ou votre conjoint)", "Ressources du foyer sous le montant forfaitaire", "Les étudiants seuls sont en principe exclus"],
     lien: "https://www.service-public.fr/particuliers/vosdroits/N19775",
     compteDansTotal: false,
-    compteDansTotalSiExact: true,
-    evaluer: (p, of) => {
+    evaluer: (p) => {
       const ageOk = p.age >= 25 || (p.situationFamiliale !== "seul" && p.conjointAge >= 25);
       if (!ageOk) return non("Ni vous ni votre conjoint n'avez 25 ans.");
-      if (of) {
-        if (of.rsa > 0) return { statut: "eligible", exact: true, montantAnnuel: Math.round(of.rsa * 12), detail: `${Math.round(of.rsa)} € / mois`, raisons: [] };
-        return non("Ressources du foyer au-dessus du montant forfaitaire.");
-      }
       return { statut: "possible", detail: "À simuler sur caf.fr", raisons: [] };
     },
   },
@@ -400,22 +377,10 @@ export const AIDES: Aide[] = [
     conditions: ["Conjoint de 16 à 25 ans (29 ans si handicap)", "Sans emploi ni formation", "S'inscrire auprès de France Travail ou d'une Mission locale"],
     lien: "https://www.service-public.fr/particuliers/vosdroits/F32700",
     compteDansTotal: false,
-    compteDansTotalSiExact: true,
-    evaluer: (p, of) => {
+    evaluer: (p) => {
       if (p.situationFamiliale === "seul") return non("Concerne le conjoint d'un étudiant en couple.");
       if (p.conjointAge > 25 || p.conjointAge < 16) return non("Le conjoint doit avoir entre 16 et 25 ans.");
       if (p.conjointActivite === "actif" || p.conjointActivite === "etudiant") return non("Le conjoint doit être sans emploi ni formation.");
-      if (of) {
-        if (of.cejConjoint > 0)
-          return {
-            statut: "eligible",
-            exact: true,
-            montantAnnuel: Math.round(of.cejConjoint * 12),
-            detail: `${Math.round(of.cejConjoint)} € / mois pour votre conjoint`,
-            raisons: ["Versé pendant l'accompagnement (jusqu'à 12 mois)."],
-          };
-        return non("Ressources du foyer trop élevées pour l'allocation.");
-      }
       return { statut: "possible", detail: "Allocation selon les ressources", raisons: [] };
     },
   },
